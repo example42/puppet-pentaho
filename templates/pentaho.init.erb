@@ -1,0 +1,136 @@
+#!/bin/sh
+# File Managed by Puppet
+<% if operatingsystem == 'RedHat' or operatingsystem == 'CentOS' or operatingsystem == 'Scientific' %>
+# pentaho        Startup script B
+#
+# chkconfig: - 85 15
+# description: Pentaho
+<% elsif operatingsystem == 'Debian' or operatingsystem == 'Ubuntu' or operatingsystem == 'Mint' %>
+<% end %>
+### BEGIN INIT INFO
+# Provides:          pentaho
+# Required-Start:    $local_fs $remote_fs $network 
+# Required-Stop:     $local_fs $remote_fs $network 
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start/stop pentaho service
+### END INIT INFO
+
+# define where pentaho is - this is the directory containing directories log, bin, conf etc
+PENTAHO_HOME=${PENTAHO_HOME:-"<%= scope.lookupvar('pentaho::real_pentaho_dir') %>"}
+
+# define the user under which pentaho will run, or use 'RUNASIS' to run as the current user
+PENTAHO_USER=${PENTAHO_USER:-"<%= scope.lookupvar('pentaho::process_user') %>"}
+
+# make sure java is in your path
+JAVAPTH=${JAVAPTH:-"/usr/local/jdk/bin"}
+
+# Lock and Pid files
+LOCKFILE=/var/lock/pentaho
+PIDFILE=<%= scope.lookupvar('pentaho::pid_file') %>.pid
+
+if [ "$PENTAHO_USER" = "RUNASIS" ]; then
+  SUBIT=""
+else
+  SUBIT="su - $PENTAHO_USER -c "
+fi
+
+if [ -n "$PENTAHO_CONSOLE" -a ! -d "$PENTAHO_CONSOLE" ]; then
+  # ensure the file exists
+  touch $PENTAHO_CONSOLE
+  if [ ! -z "$SUBIT" ]; then
+    chown $PENTAHO_USER $PENTAHO_CONSOLE
+  fi 
+fi
+
+if [ -n "$PENTAHO_CONSOLE" -a ! -f "$PENTAHO_CONSOLE" ]; then
+  echo "WARNING: location for saving console log invalid: $PENTAHO_CONSOLE"
+  echo "WARNING: ignoring it and using /dev/null"
+  PENTAHO_CONSOLE="/dev/null"
+fi
+
+#define what will be done with the console log
+PENTAHO_CONSOLE=${PENTAHO_CONSOLE:-"/dev/null"}
+
+# Start command
+PENTAHO_CMD_START="cd $PENTAHO_HOME/bin; sh $PENTAHO_HOME/bin/server.sh"
+
+# Stop command
+PENTAHO_CMD_STOP="cd $PENTAHO_HOME/bin; sh $PENTAHO_HOME/bin/shutdown.sh"
+
+if [ -z "`echo $PATH | grep $JAVAPTH`" ]; then
+  export PATH=$PATH:$JAVAPTH
+fi
+
+if [ ! -d "$PENTAHO_HOME" ]; then
+  echo PENTAHO_HOME does not exist as a valid directory : $PENTAHO_HOME
+  exit 1
+fi
+
+
+status () {
+  pslist=$( ps -ef | grep java | grep $PENTAHO_USER | awk '{print $2}' | tr '\n' ' ' | sed -e s/\ $// )
+  if [ -n "$pslist" ]; then
+    echo "pentaho (pid $pslist) is running result: 0"
+    return 0
+  fi
+  if [ -f $PIDFILE ]; then
+    echo "pentaho dead but pid file ( $PIDFILE ) exists result: 1"
+    return 1
+  fi
+  if [ -f $LOCKFILE ]; then
+    echo "pentaho dead but subsys ( $LOCKFILE ) locked result: 2"
+    return 2
+  fi
+  echo "pentaho is stopped result: 3"
+  return 3
+}
+
+start () {
+  if [ -f $LOCKFILE ]; then
+    status
+    exit
+  fi
+  cd $PENTAHO_HOME/bin
+  echo PENTAHO_CMD_START = $PENTAHO_CMD_START
+  if [ -z "$SUBIT" ]; then
+    eval $PENTAHO_CMD_START >${PENTAHO_CONSOLE} 2>&1 &
+    if [ "$?" -eq 0 ]; then
+      touch $LOCKFILE
+    fi
+  else
+    $SUBIT "$PENTAHO_CMD_START >${PENTAHO_CONSOLE} 2>&1 &"
+    if [ "$?" -eq 0 ]; then
+      touch $LOCKFILE
+    fi
+  fi
+}
+
+stop () {
+  echo PENTAHO_CMD_STOP = $PENTAHO_CMD_STOP
+  if [ -z "$SUBIT" ]; then
+    $PENTAHO_CMD_STOP && rm -f $LOCKFILE
+  else
+    $SUBIT "$PENTAHO_CMD_STOP" && rm -f $LOCKFILE
+  fi
+}
+
+case "$1" in
+start)
+    start
+    ;;
+stop)
+    stop
+    ;;
+restart)
+    stop
+    sleep 15
+    start
+    ;;
+status)
+    status
+    ;;
+*)
+    echo "usage: $0 (start|stop|restart|status|help)"
+esac
+
