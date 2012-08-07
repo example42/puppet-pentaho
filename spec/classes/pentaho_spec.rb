@@ -13,18 +13,18 @@ describe 'pentaho' do
   end
 
   describe 'Test installation via netinstall' do
-    let(:params) { {:version => '1.0' } }
-    it 'should install version 1.0 via netinstall' do
-      content = catalogue.resource('puppi::netinstall', 'netinstall_pentaho').send(:parameters)[:url]
-      content.should match "http://downloads.sourceforge.net/project/pentaho/Data%20Integration/1.0-stable/pdi-ce-1.0-stable.zip?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fpentaho%2F&ts=1339192051&use_mirror=heanet"
+    let(:params) { { :install_destination => '/opt', :version => '1.0' } }
+    it 'should install to the right destination via netinstall' do
+      content = catalogue.resource('puppi::netinstall', 'netinstall_pentaho').send(:parameters)[:destination_dir]
+      content.should match "/opt/pdi-ce-1.0-stable"
     end
   end
 
   describe 'Test installation via puppi' do
-    let(:params) { {:version => '1.0' , :install => 'puppi' } }
-    it 'should install version 1.0 via puppi' do
-      content = catalogue.resource('puppi::project::archive', 'pentaho').send(:parameters)[:source]
-      content.should match "http://downloads.sourceforge.net/project/pentaho/Data%20Integration/1.0-stable/pdi-ce-1.0-stable.zip?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fpentaho%2F&ts=1339192051&use_mirror=heanet"
+    let(:params) { { :install_destination => '/opt' , :install => 'puppi' , :version => '1.0' } }
+    it 'should install to the right destination via puppi' do
+      content = catalogue.resource('puppi::project::archive', 'pentaho').send(:parameters)[:deploy_root]
+      content.should match "/opt"
     end
   end
 
