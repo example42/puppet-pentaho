@@ -447,7 +447,7 @@ class pentaho (
       ensure  => directory,
       path    => $pentaho::real_config_dir,
       require => Class['pentaho::install'],
-      notify  => $foo::manage_service_autorestart,
+      notify  => $pentaho::manage_service_autorestart,
       source  => $source_dir,
       recurse => true,
       purge   => $source_dir_purge,
