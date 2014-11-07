@@ -408,7 +408,7 @@ class pentaho (
   $real_data_dir = $pentaho::data_dir ? {
     ''      => $pentaho::install ? {
       package => '/usr/share/pentaho',
-      default => "${pentaho::real_pentaho_dir}/databases",
+      default => "${pentaho::real_pentaho_dir}/data-integration",
     },
     default => $pentaho::data_dir,
   }
