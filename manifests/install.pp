@@ -39,7 +39,7 @@ class pentaho::install inherits pentaho {
         destination_dir     => "${pentaho::real_install_destination}/${created_dirname}" ,
         preextract_command  => $pentaho::install_precommand,
         postextract_command => "chown -R ${pentaho::process_user}:${pentaho::process_user} ${pentaho::real_install_destination}/${created_dirname}",
-        extracted_dir       => 'databases',
+        extracted_dir       => 'data-integration',
         owner               => $pentaho::process_user,
         group               => $pentaho::process_user,
         require             => [ File['pentaho_dir'] , User[$pentaho::process_user] ],
